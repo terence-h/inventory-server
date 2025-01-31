@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace inventory_server.Models;
+namespace inventory_server.Entities;
 
 [Table("categories")]
 public class Category

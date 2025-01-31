@@ -12,7 +12,7 @@ using inventory_server.Database;
 namespace inventory_server.Migrations
 {
     [DbContext(typeof(AccountDbContext))]
-    [Migration("20250130145105_Account")]
+    [Migration("20250131103708_Account")]
     partial class Account
     {
         /// <inheritdoc />
@@ -157,7 +157,7 @@ namespace inventory_server.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("inventory_server.Models.Account", b =>
+            modelBuilder.Entity("inventory_server.Entities.Account", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");
@@ -232,7 +232,7 @@ namespace inventory_server.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("inventory_server.Models.Account", null)
+                    b.HasOne("inventory_server.Entities.Account", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -241,7 +241,7 @@ namespace inventory_server.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("inventory_server.Models.Account", null)
+                    b.HasOne("inventory_server.Entities.Account", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -256,7 +256,7 @@ namespace inventory_server.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("inventory_server.Models.Account", null)
+                    b.HasOne("inventory_server.Entities.Account", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -265,7 +265,7 @@ namespace inventory_server.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("inventory_server.Models.Account", null)
+                    b.HasOne("inventory_server.Entities.Account", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)

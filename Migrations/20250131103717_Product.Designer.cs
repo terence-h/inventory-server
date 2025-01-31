@@ -11,9 +11,9 @@ using inventory_server.Database;
 
 namespace inventory_server.Migrations
 {
-    [DbContext(typeof(CategoryDbContext))]
-    [Migration("20250130145135_Category")]
-    partial class Category
+    [DbContext(typeof(ProductDbContext))]
+    [Migration("20250131103717_Product")]
+    partial class Product
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace inventory_server.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("inventory_server.Models.Category", b =>
+            modelBuilder.Entity("inventory_server.Entities.Category", b =>
                 {
                     b.Property<int>("CategoryId")
                         .ValueGeneratedOnAdd()
@@ -42,29 +42,56 @@ namespace inventory_server.Migrations
                     b.ToTable("categories");
                 });
 
-            modelBuilder.Entity("inventory_server.Models.Product", b =>
+            modelBuilder.Entity("inventory_server.Entities.Product", b =>
                 {
-                    b.Property<string>("ProductId")
-                        .HasColumnType("text");
+                    b.Property<int>("ProductId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductId"));
+
+                    b.Property<DateTime?>("AddedOn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("BatchNo")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("CategoryId")
                         .HasColumnType("integer");
 
-                    b.Property<DateTime>("MfgDate")
+                    b.Property<string>("Manufacturer")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("MfgDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("MfgExpiryDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ProductNo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
                     b.Property<int?>("RowVersion")
-                        .HasColumnType("integer");
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.HasKey("ProductId");
 
@@ -73,9 +100,9 @@ namespace inventory_server.Migrations
                     b.ToTable("products");
                 });
 
-            modelBuilder.Entity("inventory_server.Models.Product", b =>
+            modelBuilder.Entity("inventory_server.Entities.Product", b =>
                 {
-                    b.HasOne("inventory_server.Models.Category", "Category")
+                    b.HasOne("inventory_server.Entities.Category", "Category")
                         .WithMany("Products")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -84,7 +111,7 @@ namespace inventory_server.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("inventory_server.Models.Category", b =>
+            modelBuilder.Entity("inventory_server.Entities.Category", b =>
                 {
                     b.Navigation("Products");
                 });

@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace inventory_server.Migrations
 {
     /// <inheritdoc />
-    public partial class Category : Migration
+    public partial class Product : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -29,13 +29,18 @@ namespace inventory_server.Migrations
                 name: "products",
                 columns: table => new
                 {
-                    ProductId = table.Column<string>(type: "text", nullable: false),
-                    BatchNo = table.Column<string>(type: "text", nullable: false),
+                    ProductId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProductNo = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    ProductName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Manufacturer = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    BatchNo = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Quantity = table.Column<int>(type: "integer", nullable: false),
                     CategoryId = table.Column<int>(type: "integer", nullable: false),
-                    MfgDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    MfgDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     MfgExpiryDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    RowVersion = table.Column<int>(type: "integer", nullable: true)
+                    AddedOn = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    RowVersion = table.Column<int>(type: "integer", rowVersion: true, nullable: true, defaultValue: 1)
                 },
                 constraints: table =>
                 {

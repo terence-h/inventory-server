@@ -1,5 +1,4 @@
-﻿using inventory_server.Models;
-using Microsoft.AspNetCore.Identity;
+﻿using inventory_server.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
