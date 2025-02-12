@@ -14,13 +14,14 @@ public class ProductController(IProductRepository productRepository) : Controlle
         [FromQuery] string? productName,
         [FromQuery] string? manufacturer,
         [FromQuery] string? batchNo,
-        [FromQuery] int? quantity,
+        [FromQuery] int? quantityFrom,
+        [FromQuery] int? quantityTo,
         [FromQuery] int? categoryId,
         [FromQuery] DateTime? mfgDateFrom,
         [FromQuery] DateTime? mfgDateTo,
         [FromQuery] DateTime? mfgExpiryDateFrom,
         [FromQuery] DateTime? mfgExpiryDateTo,
-        [FromQuery] DateTime? addedOn,
+        // [FromQuery] DateTime? addedOn,
         [FromQuery] int? page
         )
     {
@@ -30,17 +31,26 @@ public class ProductController(IProductRepository productRepository) : Controlle
             ProductName = productName,
             Manufacturer = manufacturer,
             BatchNo = batchNo,
-            Quantity = quantity,
+            QuantityFrom = quantityFrom,
+            QuantityTo = quantityTo,
             CategoryId = categoryId,
             MfgDateFrom = mfgDateFrom,
             MfgDateTo = mfgDateTo,
             MfgExpiryDateFrom = mfgExpiryDateFrom,
             MfgExpiryDateTo = mfgExpiryDateTo,
-            AddedOn = addedOn,
+            // AddedOn = addedOn,
             Page = page
         };
         
         var response = await productRepository.GetProductsAsync(request);
+
+        return Ok(response);
+    }
+    
+    [HttpGet("getProduct/{productId:int}")]
+    public async Task<IActionResult> GetProduct([FromRoute] int productId)
+    {
+        var response = await productRepository.GetProductAsync(productId);
 
         return Ok(response);
     }
@@ -50,9 +60,30 @@ public class ProductController(IProductRepository productRepository) : Controlle
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
+        
+        request.ProductName = request.ProductName.Trim();
+        request.ProductNo = request.ProductNo.Trim();
+        request.Manufacturer = request.Manufacturer.Trim();
+        request.BatchNo = request.BatchNo.Trim();
 
         var response = await productRepository.AddProductAsync(request);
         
-        return Ok(response);
+        return response.ProductId > 0 ? Ok(response) : BadRequest(response);
+    }
+
+    [HttpPost("editProduct")]
+    public async Task<IActionResult> EditProduct([FromBody] EditProductRequest request)
+    {
+        if (!ModelState.IsValid || request.ProductId < 1)
+            return BadRequest(ModelState);
+        
+        request.ProductName = request.ProductName.Trim();
+        request.ProductNo = request.ProductNo.Trim();
+        request.Manufacturer = request.Manufacturer.Trim();
+        request.BatchNo = request.BatchNo.Trim();
+
+        var response = await productRepository.EditProductAsync(request);
+        
+        return string.IsNullOrEmpty(response.Message) ? Ok(response) : BadRequest(response);
     }
 }

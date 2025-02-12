@@ -8,6 +8,13 @@ namespace inventory_server.Controllers;
 [Route("api/[controller]")]
 public class CategoryController(ICategoryRepository categoryRepository) : ControllerBase
 {
+    [HttpGet("getcategories")]
+    public async Task<IActionResult> GetCategories()
+    {
+        var response = await categoryRepository.GetCategories();
+        return Ok(response);
+    }
+    
     [HttpPost("addcategory")]
     public async Task<IActionResult> AddCategory([FromBody] AddCategoryRequest request)
     {

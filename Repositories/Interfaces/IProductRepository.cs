@@ -7,9 +7,9 @@ namespace inventory_server.Repositories.Interfaces;
 
 public interface IProductRepository
 {
-    Task<IEnumerable<Product>> GetProductsAsync(GetProductsRequest request);
-    Task<Product?> GetProductByIdAsync(int id);
+    Task<PagedResult<GetProductResponse>> GetProductsAsync(GetProductsRequest request);
+    Task<GetProductResponse> GetProductAsync(int id);
     Task<AddProductResponse> AddProductAsync(AddProductRequest request);
-    Task UpdateProductAsync(Product product);
+    Task<EditProductResponse> EditProductAsync(EditProductRequest product);
     Task DeleteProductAsync(int id);
 }

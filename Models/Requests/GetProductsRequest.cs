@@ -6,12 +6,13 @@ public class GetProductsRequest
     public string? ProductName;
     public string? Manufacturer;
     public string? BatchNo;
-    public int? Quantity;
+    public int? QuantityFrom;
+    public int? QuantityTo;
     public int? CategoryId;
     public DateTime? MfgDateFrom;
     public DateTime? MfgDateTo;
     public DateTime? MfgExpiryDateFrom;
     public DateTime? MfgExpiryDateTo;
-    public DateTime? AddedOn;
+    // public DateTime? AddedOn;
     public int? Page;
 }

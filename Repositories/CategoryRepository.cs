@@ -4,11 +4,17 @@ using inventory_server.Entities;
 using inventory_server.Models.Requests;
 using inventory_server.Models.Response;
 using inventory_server.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace inventory_server.Repositories;
 
 public class CategoryRepository(CategoryDbContext dbContext, IMapper mapper) : ICategoryRepository
 {
+    public async Task<IEnumerable<Category>> GetCategories()
+    {
+        return await dbContext.Categories.ToListAsync();
+    }
+    
     public async Task<AddCategoryResponse> AddCategory(AddCategoryRequest request)
     {
         var category = mapper.Map<Category>(request);

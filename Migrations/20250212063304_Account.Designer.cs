@@ -12,7 +12,7 @@ using inventory_server.Database;
 namespace inventory_server.Migrations
 {
     [DbContext(typeof(AccountDbContext))]
-    [Migration("20250131103708_Account")]
+    [Migration("20250212063304_Account")]
     partial class Account
     {
         /// <inheritdoc />

@@ -67,6 +67,8 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+await DbInit.InitialiseAsync(app.Services);
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -74,7 +76,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 // Use CORS
 app.UseCors(corsPolicyName);
