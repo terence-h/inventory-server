@@ -18,6 +18,12 @@ builder.Services.AddDbContext<ProductDbContext>(options =>
 builder.Services.AddDbContext<CategoryDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddDbContext<AuditDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddDbContext<AuditTypeDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 // Configure ASP.NET Identity
 builder.Services.AddIdentity<Account, IdentityRole>()
     .AddEntityFrameworkStores<AccountDbContext>()
@@ -42,6 +48,7 @@ builder.Services.Configure<IdentityOptions>(options =>
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 

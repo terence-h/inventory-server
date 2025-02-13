@@ -12,7 +12,7 @@ public class CategoryRepository(CategoryDbContext dbContext, IMapper mapper) : I
 {
     public async Task<IEnumerable<Category>> GetCategories()
     {
-        return await dbContext.Categories.ToListAsync();
+        return await dbContext.Categories.AsNoTracking().ToListAsync();
     }
     
     public async Task<AddCategoryResponse> AddCategory(AddCategoryRequest request)

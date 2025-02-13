@@ -86,4 +86,15 @@ public class ProductController(IProductRepository productRepository) : Controlle
         
         return string.IsNullOrEmpty(response.Message) ? Ok(response) : BadRequest(response);
     }
+
+    [HttpPost("deleteProduct/{productId:int}")]
+    public async Task<IActionResult> DeleteProduct([FromRoute] int productId, [FromBody] DeleteProductRequest request)
+    {
+        if (!ModelState.IsValid || productId < 1)
+            return BadRequest(ModelState);
+        
+        var response = await productRepository.DeleteProductAsync(productId, request);
+        
+        return response.Success ? Ok(response) : BadRequest(response);
+    }
 }

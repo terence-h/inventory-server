@@ -16,14 +16,30 @@ public static class DbInit
         {
             var accountDbContext = services.GetRequiredService<AccountDbContext>();
             var productDbContext = services.GetRequiredService<ProductDbContext>();
-            var categoryDbContext = services.GetRequiredService<CategoryDbContext>();
+            var auditDbContext = services.GetRequiredService<AuditDbContext>();
             
-            await accountDbContext.Database.MigrateAsync();
-            await productDbContext.Database.MigrateAsync(); // ProductDbContext will create category db
+            var accountPendingMigrations  = await accountDbContext.Database.GetPendingMigrationsAsync();
+            var productPendingMigrations  = await productDbContext.Database.GetPendingMigrationsAsync();
+            var auditPendingMigrations  = await auditDbContext.Database.GetPendingMigrationsAsync();
 
-            // Seed Data (Users & Categories)
-            await SeedUsersAsync(services);
-            await SeedCategoriesAsync(categoryDbContext);
+            if (accountPendingMigrations.Any() || productPendingMigrations.Any() || auditPendingMigrations.Any())
+            {
+                await accountDbContext.Database.MigrateAsync();
+                await productDbContext.Database.MigrateAsync(); // ProductDbContext will create category db
+                await auditDbContext.Database.MigrateAsync(); // AuditDbContext will create types db
+                
+                await SeedUsersAsync(services);
+                
+                var categoryDbContext = services.GetRequiredService<CategoryDbContext>();
+                await SeedCategoriesAsync(categoryDbContext);
+                
+                var auditTypesDbContext = services.GetRequiredService<AuditTypeDbContext>();
+                await SeedAuditTypes(auditTypesDbContext);
+            }
+            else
+            {
+                Console.WriteLine("Database is already up-to-date. Skipping migration and seeding.");
+            }
         }
         catch (Exception ex)
         {
@@ -70,6 +86,22 @@ public static class DbInit
                 new Category { CategoryId = 3, CategoryName = "Beverages" },
                 new Category { CategoryId = 4, CategoryName = "Household & Kitchen Essentials" },
                 new Category { CategoryId = 5, CategoryName = "Others" }
+            );
+            await dbContext.SaveChangesAsync();
+        }
+    }
+
+    private static async Task SeedAuditTypes(AuditTypeDbContext dbContext)
+    {
+        if (!await dbContext.AuditTypes.AnyAsync())
+        {
+            dbContext.AuditTypes.AddRange(
+                new AuditType { AuditTypeId = 1, Name = "Register" },
+                new AuditType { AuditTypeId = 2, Name = "Login" },
+                new AuditType { AuditTypeId = 3, Name = "Logout" },
+                new AuditType { AuditTypeId = 4, Name = "Add Product" },
+                new AuditType { AuditTypeId = 5, Name = "Edit Product" },
+                new AuditType { AuditTypeId = 6, Name = "Delete Product" }
             );
             await dbContext.SaveChangesAsync();
         }

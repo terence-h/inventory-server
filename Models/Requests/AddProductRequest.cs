@@ -10,4 +10,12 @@ public class AddProductRequest
     public required int CategoryId { get; set; }
     public DateTime? MfgDate { get; set; }
     public DateTime? MfgExpiryDate { get; set; }
+    
+    // For audit
+    public required string Username { get; set; }
+    
+    public override string ToString()
+    {
+        return $"ProductNo:{ProductNo},ProductName:{ProductName},Manufacturer:{Manufacturer},BatchNo:{BatchNo},Quantity:{Quantity},CategoryId:{CategoryId},MfgDate:{MfgDate},MfgExpiryDate:{MfgExpiryDate}";
+    }
 }

@@ -11,5 +11,5 @@ public interface IProductRepository
     Task<GetProductResponse> GetProductAsync(int id);
     Task<AddProductResponse> AddProductAsync(AddProductRequest request);
     Task<EditProductResponse> EditProductAsync(EditProductRequest product);
-    Task DeleteProductAsync(int id);
+    Task<DeleteProductResponse> DeleteProductAsync(int productId, DeleteProductRequest request);
 }

@@ -9,13 +9,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace inventory_server.Repositories;
 
-public class ProductRepository(ProductDbContext context, IMapper mapper) : IProductRepository
+public class ProductRepository(ProductDbContext dbContext, IMapper mapper, IAuditRepository auditRepository) : IProductRepository
 {
 
     public async Task<PagedResult<GetProductResponse>> GetProductsAsync(GetProductsRequest filters)
     {
-        IQueryable<Product> products = context.Products
-            .Include(p => p.Category);
+        IQueryable<Product> products = dbContext.Products
+            .Include(p => p.Category)
+            .AsNoTracking();
         
         if (!string.IsNullOrEmpty(filters.ProductNo))
         {
@@ -34,7 +35,7 @@ public class ProductRepository(ProductDbContext context, IMapper mapper) : IProd
         
         if (!string.IsNullOrEmpty(filters.BatchNo))
         {
-            products = products.Where(p => p.Manufacturer.ToLower().Contains(filters.BatchNo.ToLower()));
+            products = products.Where(p => p.BatchNo.ToLower().Contains(filters.BatchNo.ToLower()));
         }
         
         if (filters.QuantityFrom.HasValue || filters.QuantityTo.HasValue)
@@ -49,24 +50,19 @@ public class ProductRepository(ProductDbContext context, IMapper mapper) : IProd
 
         if (filters.MfgDateFrom.HasValue || filters.MfgDateTo.HasValue)
         {
-            products = products.Where(p => (p.MfgDate != null && p.MfgDate.Value >= (filters.MfgDateFrom ?? DateTime.UnixEpoch)) && (p.MfgDate != null && p.MfgDate.Value <= (filters.MfgDateTo ?? DateTime.MaxValue)));
+            products = products.Where(p => (p.MfgDate != null && p.MfgDate.Value >= (filters.MfgDateFrom != null ? DateTime.SpecifyKind(filters.MfgDateFrom.Value, DateTimeKind.Utc) : DateTime.UnixEpoch)) && (p.MfgDate != null && p.MfgDate.Value <= (filters.MfgDateTo != null ? DateTime.SpecifyKind(filters.MfgDateTo.Value, DateTimeKind.Utc) : DateTime.MaxValue)));
         }
         
         if (filters.MfgExpiryDateFrom.HasValue || filters.MfgExpiryDateTo.HasValue)
         {
-            products = products.Where(p => (p.MfgDate != null && p.MfgDate.Value >= (filters.MfgExpiryDateFrom ?? DateTime.UnixEpoch)) && (p.MfgDate != null && p.MfgDate.Value <= (filters.MfgExpiryDateTo ?? DateTime.MaxValue)));
+            products = products.Where(p => (p.MfgDate != null && p.MfgDate.Value >= (filters.MfgExpiryDateFrom != null ? DateTime.SpecifyKind(filters.MfgExpiryDateFrom.Value, DateTimeKind.Utc) : DateTime.UnixEpoch)) && (p.MfgDate != null && p.MfgDate.Value <= (filters.MfgExpiryDateTo != null ? DateTime.SpecifyKind(filters.MfgExpiryDateTo.Value, DateTimeKind.Utc) : DateTime.MaxValue)));
         }
-        
-        // if (filters.AddedOn.HasValue)
-        // {
-        //     products = products.Where(p => p.AddedOn != null ? p.AddedOn.Value >= (filters.MfgExpiryDateFrom != null ? filters.MfgExpiryDateFrom.Value : DateTime.UnixEpoch) : false);
-        // }
         
         // Pagination logic
         const int pageSize = 10;
-        var page = filters.Page ?? 1;
         var totalCount = await products.CountAsync();
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+        var page = Math.Clamp(filters.Page ?? 1, 1, totalPages);
 
         var pagedProducts = await products
             .Select(p => new GetProductResponse()
@@ -97,7 +93,7 @@ public class ProductRepository(ProductDbContext context, IMapper mapper) : IProd
 
     public async Task<GetProductResponse> GetProductAsync(int id)
     {
-        var product = await context.Products
+        var product = await dbContext.Products
             .Include(p => p.Category)
             .FirstOrDefaultAsync(p => p.ProductId == id);
 
@@ -128,13 +124,21 @@ public class ProductRepository(ProductDbContext context, IMapper mapper) : IProd
     {
         var product = mapper.Map<Product>(request);
         
-        if (context.Products.Any(p =>
+        if (dbContext.Products.Any(p =>
                 p.ProductNo == product.ProductNo &&
                 p.Manufacturer == product.Manufacturer &&
                 p.BatchNo == product.BatchNo))
         {
+            await auditRepository.CreateAuditLogAsync(new AddAuditLogRequest
+            {
+                AuditTypeId = Globals.AuditType.AddProduct,
+                AuditContent = $"Failed to add product: '{product.ProductNo}' of Batch No. '{product.BatchNo}' already exists within '{product.Manufacturer}'",
+                ActionBy = request.Username,
+                Date = DateTime.Now
+            });
+            
             return new AddProductResponse
-                { ProductId = 0, Message = $"'{product.ProductNo}' of Batch No. '{product.BatchNo}' already exists within '{product.Manufacturer}'!" };
+                { ProductId = 0, Message = $"'{product.ProductNo}' of Batch No. '{product.BatchNo}' already exists within '{product.Manufacturer}'" };
         }
 
         if (product.MfgDate.HasValue)
@@ -147,44 +151,80 @@ public class ProductRepository(ProductDbContext context, IMapper mapper) : IProd
             product.MfgExpiryDate = DateTime.SpecifyKind(product.MfgExpiryDate.Value, DateTimeKind.Utc);
         }
         
-        try
+        await using (var transaction = await dbContext.Database.BeginTransactionAsync())
         {
-            context.Products.Add(product);
+            dbContext.Products.Add(product);
+            var created = await dbContext.SaveChangesAsync();
 
-            var created = await context.SaveChangesAsync();
-
-            if (created > 0)
+            if (created == 0)
             {
+                var auditLogId = await auditRepository.CreateAuditLogAsync(new AddAuditLogRequest
+                {
+                    AuditTypeId = Globals.AuditType.AddProduct,
+                    AuditContent = $"Failed to add product: {product.ProductName}",
+                    ActionBy = request.Username,
+                    Date = DateTime.Now
+                });
+                
+                await transaction.RollbackAsync();
                 return new AddProductResponse
-                    { ProductId = product.ProductId, Message = $"{product.ProductNo} - {product.ProductName} added successfully." };
+                { 
+                    ProductId = 0, 
+                    Message = $"Failed to add product: {product.ProductName}. Audit ID: {auditLogId}" 
+                };
             }
-
-            return new AddProductResponse
-                { ProductId = 0, Message = $"Error adding {product.ProductName}." };
-        }
-        catch (Exception ex)
-        {
-            return new AddProductResponse { ProductId = 0, Message = $"ERROR AddProductAsync: {ex.Message}" };
+            
+            await auditRepository.CreateAuditLogAsync(new AddAuditLogRequest
+            {
+                AuditTypeId = Globals.AuditType.AddProduct,
+                AuditContent = $"[AddProductSuccess]ProductId:{product.ProductId},{request.ToString()}",
+                ActionBy = request.Username,
+                Date = DateTime.Now
+            });
+            
+            await transaction.CommitAsync();
+    
+            return new AddProductResponse 
+            { 
+                ProductId = product.ProductId, 
+                Message = "Product added successfully" 
+            };
         }
     }
 
     public async Task<EditProductResponse> EditProductAsync(EditProductRequest request)
     {
-        var productToEdit = await context.Products.FindAsync(request.ProductId);
+        var productToEdit = await dbContext.Products.FindAsync(request.ProductId);
 
         if (productToEdit == null)
         {
-            return new EditProductResponse { ProductId = request.ProductId, Message = "Product does not exist!"};
+            await auditRepository.CreateAuditLogAsync(new AddAuditLogRequest
+            {
+                AuditTypeId = Globals.AuditType.EditProduct,
+                AuditContent = $"Editing product failed - Product does not exist",
+                ActionBy = request.Username,
+                Date = DateTime.Now
+            });
+            
+            return new EditProductResponse { ProductId = request.ProductId, Message = "Product does not exist"};
         }
         
-        if (context.Products.Any(p =>
+        if (dbContext.Products.Any(p =>
                 p.ProductId != request.ProductId &&
                 p.ProductNo == request.ProductNo &&
                 p.Manufacturer == request.Manufacturer &&
                 p.BatchNo == request.BatchNo))
         {
+            await auditRepository.CreateAuditLogAsync(new AddAuditLogRequest
+            {
+                AuditTypeId = Globals.AuditType.EditProduct,
+                AuditContent = $"Editing product failed - '{request.ProductName}'/'{request.ProductNo}' of Batch No. '{request.BatchNo}' already exists within '{request.Manufacturer}",
+                ActionBy = request.Username,
+                Date = DateTime.Now
+            });
+            
             return new EditProductResponse
-                { ProductId = 0, Message = $"'{request.ProductNo} of Batch No. '{request.BatchNo}' already exists within '{request.Manufacturer}'!" };
+                { ProductId = 0, Message = $"'{request.ProductName}'/'{request.ProductNo}' of Batch No. '{request.BatchNo}' already exists within '{request.Manufacturer}'" };
         }
 
         if (request.MfgDate.HasValue)
@@ -197,7 +237,7 @@ public class ProductRepository(ProductDbContext context, IMapper mapper) : IProd
             request.MfgExpiryDate = DateTime.SpecifyKind(request.MfgExpiryDate.Value, DateTimeKind.Utc);
         }
         
-        await using (var transaction = await context.Database.BeginTransactionAsync())
+        await using (var transaction = await dbContext.Database.BeginTransactionAsync())
         {
             try
             {
@@ -209,29 +249,92 @@ public class ProductRepository(ProductDbContext context, IMapper mapper) : IProd
                 productToEdit.CategoryId = request.CategoryId;
                 productToEdit.MfgDate = request.MfgDate;
                 productToEdit.MfgExpiryDate = request.MfgExpiryDate;
-                // context.Products.Update(productToEdit);
-                await context.SaveChangesAsync();
+                // dbContext.Products.Update(productToEdit);
+                await dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
+                await auditRepository.CreateAuditLogAsync(new AddAuditLogRequest
+                {
+                    AuditTypeId = Globals.AuditType.EditProduct,
+                    AuditContent = $"Editing product failed - {ex.Message}",
+                    ActionBy = request.Username,
+                    Date = DateTime.Now
+                });
                 return new EditProductResponse { ProductId = request.ProductId, Message = $"ERROR EditProductAsync: {ex.Message}" };
             }
         }
+        
+        await auditRepository.CreateAuditLogAsync(new AddAuditLogRequest
+        {
+            AuditTypeId = Globals.AuditType.EditProduct,
+            AuditContent = $"[EditProductSuccess]{request.ToString()}",
+            ActionBy = request.Username,
+            Date = DateTime.Now
+        });
         
         return new EditProductResponse
             { ProductId = request.ProductId };
     }
 
-    public async Task DeleteProductAsync(int id)
+    public async Task<DeleteProductResponse> DeleteProductAsync(int productId, DeleteProductRequest request)
     {
-        var product = await context.Products.FindAsync(id);
+        var product = await dbContext.Products.FindAsync(productId);
         
-        if (product != null)
+        if (product == null)
         {
-            context.Products.Remove(product);
-            await context.SaveChangesAsync();
+            await auditRepository.CreateAuditLogAsync(new AddAuditLogRequest
+            {
+                AuditTypeId = Globals.AuditType.DeleteProduct,
+                AuditContent = $"Failed to delete product {productId} - Product does not exist",
+                ActionBy = request.Username,
+                Date = DateTime.Now
+            });
+            
+            return new DeleteProductResponse
+            {
+                Success = false,
+                Message = "Product does not exist"
+            };
         }
+        
+        await using (var transaction = await dbContext.Database.BeginTransactionAsync())
+        {
+            try
+            {
+                dbContext.Products.Remove(product);
+                await dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                
+                await auditRepository.CreateAuditLogAsync(new AddAuditLogRequest
+                {
+                    AuditTypeId = Globals.AuditType.DeleteProduct,
+                    AuditContent = $"Failed to delete product {productId} - {ex.Message}",
+                    ActionBy = request.Username,
+                    Date = DateTime.Now
+                });
+                return new DeleteProductResponse { Success = false, Message = $"ERROR DeleteProductAsync: {ex.Message}" };
+            }
+        }
+        
+        await auditRepository.CreateAuditLogAsync(new AddAuditLogRequest
+        {
+            AuditTypeId = Globals.AuditType.DeleteProduct,
+            AuditContent = $"[DeleteProductSuccess]ProductId:{product.ProductId},ProductNo:{product.ProductNo},ProductName:{product.ProductName},Manufacturer:{product.Manufacturer},BatchNo:{product.BatchNo},Quantity:{product.Quantity},CategoryId:{product.CategoryId},MfgDate:{product.MfgDate},MfgExpiryDate:{product.MfgExpiryDate}",
+            ActionBy = request.Username,
+            Date = DateTime.Now
+        });
+
+        return new DeleteProductResponse
+        {
+            Success = true,
+            Message = $"'{product.ProductName}'/'{product.ProductNo}' of Batch No. '{product.BatchNo}' from '{product.Manufacturer}' has been deleted"
+        };
     }
 }

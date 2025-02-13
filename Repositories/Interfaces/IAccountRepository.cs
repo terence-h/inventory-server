@@ -6,5 +6,6 @@ namespace inventory_server.Repositories.Interfaces;
 public interface IAccountRepository
 {
     Task<LoginResponse> Login(LoginRequest request);
+    Task<bool> Logout(LogoutRequest request);
     Task<RegisterResponse> Register(RegisterRequest request);
 }

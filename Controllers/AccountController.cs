@@ -32,4 +32,15 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
         
         return response.Message == null ? Ok(response) : BadRequest(response);
     }
+    
+    [HttpPost("logout")]
+    public async Task<IActionResult> Login([FromBody] LogoutRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+        
+        var response = await accountRepository.Logout(request);
+        
+        return response ? Ok(response) : BadRequest(response);
+    }
 }

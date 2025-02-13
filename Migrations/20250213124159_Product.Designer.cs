@@ -12,7 +12,7 @@ using inventory_server.Database;
 namespace inventory_server.Migrations
 {
     [DbContext(typeof(ProductDbContext))]
-    [Migration("20250212063314_Product")]
+    [Migration("20250213124159_Product")]
     partial class Product
     {
         /// <inheritdoc />
