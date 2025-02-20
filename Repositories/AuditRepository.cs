@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.Text.RegularExpressions;
+using AutoMapper;
 using inventory_server.Database;
 using inventory_server.Entities;
 using inventory_server.Models.Requests;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace inventory_server.Repositories;
 
-public class AuditRepository(AuditDbContext dbContext, IMapper mapper) : IAuditRepository
+public class AuditRepository(AuditDbContext dbContext, AuditTypeDbContext typeDbContext, IMapper mapper) : IAuditRepository
 {
     public async Task<PagedResult<GetAuditLogResponse>> GetAuditLogsAsync(GetAuditLogsRequest filters)
     {
@@ -42,6 +43,8 @@ public class AuditRepository(AuditDbContext dbContext, IMapper mapper) : IAuditR
         var totalCount = await auditLogs.CountAsync();
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
         var page = Math.Clamp(filters.Page ?? 1, 1, totalPages);
+        
+        var targetTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Singapore Standard Time");
 
         var pagedAuditLogs = await auditLogs
             .Select(e => new GetAuditLogResponse
@@ -51,9 +54,8 @@ public class AuditRepository(AuditDbContext dbContext, IMapper mapper) : IAuditR
                 AuditTypeName = e.AuditType.Name,
                 AuditContent = e.AuditContent,
                 ActionBy = e.ActionBy,
-                Date = e.Date
+                Date = TimeZoneInfo.ConvertTimeFromUtc(e.Date, targetTimeZone).ToString("dd/MM/yyyy HH:mm:ss")
             })
-            .OrderByDescending(p => p.Date)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -66,6 +68,34 @@ public class AuditRepository(AuditDbContext dbContext, IMapper mapper) : IAuditR
         };
     }
 
+    public async Task<GetAuditLogResponse> GetAuditLogAsync(Guid auditId)
+    {
+        var auditLog = await dbContext.AuditLogs
+            .Include(p => p.AuditType)
+            .FirstOrDefaultAsync(p => p.AuditLogId == auditId);
+        
+        if (auditLog == null)
+        {
+            return new GetAuditLogResponse();
+        }
+        
+        var targetTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Singapore Standard Time");
+        
+        auditLog.AuditContent = FormatAuditContent(auditLog.AuditContent, (Globals.AuditType)auditLog.AuditTypeId);
+
+        var auditLogResp = new GetAuditLogResponse()
+        {
+            AuditLogId = auditLog.AuditLogId,
+            AuditTypeId = auditLog.AuditTypeId,
+            AuditTypeName = auditLog.AuditType.Name,
+            AuditContent = auditLog.AuditContent,
+            ActionBy = auditLog.ActionBy,
+            Date = TimeZoneInfo.ConvertTimeFromUtc(auditLog.Date, targetTimeZone).ToString("dd/MM/yyyy HH:mm:ss")
+        };
+        
+        return auditLogResp;
+    }
+
     public async Task<Guid> CreateAuditLogAsync(AddAuditLogRequest request)
     {
         var auditLog = mapper.Map<AuditLog>(request);
@@ -74,8 +104,42 @@ public class AuditRepository(AuditDbContext dbContext, IMapper mapper) : IAuditR
 
         dbContext.AuditLogs.Add(auditLog);
 
-        var created = await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
 
         return auditLog.AuditLogId;
+    }
+
+    public async Task<IEnumerable<AuditType>> GetAuditTypesAsync()
+    {
+        return await typeDbContext.AuditTypes.AsNoTracking().ToListAsync();
+    }
+
+    private static string FormatAuditContent(string content, Globals.AuditType type)
+    {
+        if (string.IsNullOrEmpty(content))
+            return string.Empty;
+        
+        switch (type)
+        {
+            case Globals.AuditType.AddProduct:
+            case Globals.AuditType.EditProduct:
+            case Globals.AuditType.DeleteProduct:
+            {
+                if (content.StartsWith("["))
+                {
+                    content = Regex.Replace(content, @"\[[^\]]*\]", "");
+                    var splitStr = content.Split(',');
+                    content = string.Join("\n", splitStr);
+                }
+                break;
+            }
+            case Globals.AuditType.Register:
+            case Globals.AuditType.Login:
+            case Globals.AuditType.Logout:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+        return content;
     }
 }

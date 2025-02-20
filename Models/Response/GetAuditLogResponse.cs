@@ -7,5 +7,6 @@ public class GetAuditLogResponse
     public string AuditTypeName { get; set; }
     public string AuditContent { get; set; }
     public string ActionBy { get; set; }
-    public DateTime Date { get; set; }
+    // public DateTime Date { get; set; }
+    public string Date { get; set; }
 }

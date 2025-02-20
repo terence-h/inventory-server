@@ -32,4 +32,19 @@ public class AuditController(IAuditRepository auditRepository) : ControllerBase
 
         return Ok(response);
     }
+    
+    [HttpGet("getAuditLog/{auditId:guid}")]
+    public async Task<IActionResult> GetAuditLogs([FromRoute] Guid auditId)
+    {
+        var response = await auditRepository.GetAuditLogAsync(auditId);
+
+        return Ok(response);
+    }
+
+    [HttpGet("getAuditTypes")]
+    public async Task<IActionResult> GetAuditTypes()
+    {
+        var response = await auditRepository.GetAuditTypesAsync();
+        return Ok(response);
+    }
 }
