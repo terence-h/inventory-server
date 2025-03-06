@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text.Json;
+using System.Text.RegularExpressions;
 using AutoMapper;
 using inventory_server.Database;
 using inventory_server.Entities;
@@ -67,6 +68,57 @@ public class AuditRepository(AuditDbContext dbContext, AuditTypeDbContext typeDb
             Items = pagedAuditLogs
         };
     }
+    
+    public async Task<IEnumerable<GetAuditLogByProductIdResponse>> GetAuditLogsByProductIdAsync(int productId, int year)
+    {
+        IQueryable<AuditLog> auditLogs = dbContext.AuditLogs
+            .Include(p => p.AuditType)
+            .Where(p => p.Date.Year == year &&
+                        (p.AuditTypeId == (int)Globals.AuditType.AddProduct ||
+                         p.AuditTypeId == (int)Globals.AuditType.EditProduct) &&
+                        p.AuditContent.Substring(15, 20).Contains($"ProductId:{productId}"))
+            .OrderBy(p => p.Date)
+            .AsNoTracking();
+
+        // First, fetch the data asynchronously from the database
+        var logsList = await auditLogs.ToListAsync();
+
+        var targetTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Singapore Standard Time");
+        
+        var response = logsList.Select(e =>
+        {
+            int quantity = 0;
+            
+            var parts = e.AuditContent?.Split(',') ?? [];
+            if (parts.Length > 5)
+            {
+                string quantityPart = parts[5];
+                const string prefix = "Quantity:";
+                if (quantityPart.StartsWith(prefix))
+                {
+                    // Extract the number after "Quantity:" and trim any whitespace
+                    string numberPart = quantityPart.Substring(prefix.Length).Trim();
+                    if (int.TryParse(numberPart, out var parsedValue))
+                    {
+                        quantity = parsedValue;
+                    }
+                }
+            }
+            
+            string formattedDate = TimeZoneInfo
+                .ConvertTimeFromUtc(e.Date, targetTimeZone)
+                .ToString("dd/MM/yyyy HH:mm:ss");
+
+            return new GetAuditLogByProductIdResponse
+            {
+                Quantity = quantity,
+                Date = formattedDate
+            };
+        }).ToList();
+
+        return response;
+    }
+
 
     public async Task<GetAuditLogResponse> GetAuditLogAsync(Guid auditId)
     {

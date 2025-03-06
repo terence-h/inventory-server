@@ -10,5 +10,5 @@ public class AuditLog
     public required string AuditContent { get; set; }
     public required string ActionBy { get; set; }
     public DateTime Date { get; set; }
-    public required AuditType AuditType { get; set; }
+    public AuditType AuditType { get; set; }
 }

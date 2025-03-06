@@ -90,7 +90,7 @@ public class ProductRepository(ProductDbContext dbContext, IMapper mapper, IAudi
             Items = pagedProducts
         };
     }
-
+    
     public async Task<GetProductResponse> GetProductAsync(int id)
     {
         var product = await dbContext.Products

@@ -40,6 +40,14 @@ public class AuditController(IAuditRepository auditRepository) : ControllerBase
 
         return Ok(response);
     }
+    
+    [HttpGet("getAuditLogByProductId/{productId:int}")]
+    public async Task<IActionResult> GetAuditLogsByProductId([FromRoute] int productId, [FromQuery] int? year)
+    {
+        var response = await auditRepository.GetAuditLogsByProductIdAsync(productId, year ?? DateTime.Now.Year);
+        
+        return Ok(response);
+    }
 
     [HttpGet("getAuditTypes")]
     public async Task<IActionResult> GetAuditTypes()
