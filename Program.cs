@@ -55,18 +55,31 @@ builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddControllers();
 
 // Configure CORS (will be detailed in Step 5)
-const string corsPolicyName = "AllowSpecificOrigin";
+// const string corsPolicyName = "AllowSpecificOrigin";
+// builder.Services.AddCors(options =>
+// {
+//     options.AddPolicy(name: corsPolicyName,
+//         policy =>
+//         {
+//             // Raspberry Pi IPv4 address
+//             policy.WithOrigins("http://192.168.18.92")
+//                 .AllowAnyHeader()
+//                 .AllowAnyMethod();
+//         });
+// });
+
+const string corsPolicyName = "AllowAllOrigins";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: corsPolicyName,
         policy =>
         {
-            // Raspberry Pi IPv4 address
-            policy.WithOrigins("http://192.168.18.92")
+            policy.AllowAnyOrigin()
                 .AllowAnyHeader()
                 .AllowAnyMethod();
         });
 });
+
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
