@@ -143,7 +143,6 @@ public static class DbInit
             dbContext.Products.AddRange(
                 new Product
                 {
-                    ProductId = 1,
                     ProductNo = "BEV-001",
                     ProductName = "Cold Brew Coffee",
                     Manufacturer = "Brew Masters",
@@ -155,7 +154,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 2,
                     ProductNo = "HOUSE-001",
                     ProductName = "Dish Soap",
                     Manufacturer = "Clean & Green",
@@ -167,7 +165,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 3,
                     ProductNo = "HOUSE-002",
                     ProductName = "Laundry Detergent",
                     Manufacturer = "Fresh Scent",
@@ -179,7 +176,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 4,
                     ProductNo = "FRUIT-002",
                     ProductName = "Banana",
                     Manufacturer = "Tropical Fruits Co.",
@@ -191,7 +187,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 5,
                     ProductNo = "SEAFOOD-001",
                     ProductName = "Fresh Salmon",
                     Manufacturer = "Ocean Catch",
@@ -203,7 +198,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 6,
                     ProductNo = "OTHER-001",
                     ProductName = "Organic Honey",
                     Manufacturer = "Golden Farms",
@@ -215,7 +209,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 7,
                     ProductNo = "FRUIT-002",
                     ProductName = "Banana",
                     Manufacturer = "Tropical Fruits Co.",
@@ -227,7 +220,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 8,
                     ProductNo = "SEAFOOD-001",
                     ProductName = "Fresh Salmon",
                     Manufacturer = "Ocean Catch",
@@ -239,7 +231,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 9,
                     ProductNo = "SEAFOOD-001",
                     ProductName = "Fresh Salmon",
                     Manufacturer = "Ocean Catch",
@@ -251,7 +242,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 10,
                     ProductNo = "BEV-001",
                     ProductName = "Cold Brew Coffee",
                     Manufacturer = "Brew Masters",
@@ -263,7 +253,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 11,
                     ProductNo = "OTHER-001",
                     ProductName = "Organic Honey",
                     Manufacturer = "Golden Farms",
@@ -275,7 +264,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 12,
                     ProductNo = "MEAT-001",
                     ProductName = "Grass-Fed Beef",
                     Manufacturer = "Prime Meats",
@@ -287,7 +275,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 13,
                     ProductNo = "HOUSE-001",
                     ProductName = "Dish Soap",
                     Manufacturer = "Clean & Green",
@@ -299,7 +286,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 14,
                     ProductNo = "OTHER-001",
                     ProductName = "Organic Honey",
                     Manufacturer = "Golden Farms",
@@ -311,7 +297,6 @@ public static class DbInit
                 },
                 new Product
                 {
-                    ProductId = 15,
                     ProductNo = "OTHER-001",
                     ProductName = "Organic Honey",
                     Manufacturer = "Golden Farms",
